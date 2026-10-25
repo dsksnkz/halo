@@ -1,0 +1,107 @@
+/* Colours are registered so the browser can interpolate them on track change. */
+@property --accent{syntax:'<color>';inherits:true;initial-value:#d9d9d9}
+@property --glow{syntax:'<color>';inherits:true;initial-value:#1b1b1b}
+@property --tint-a{syntax:'<color>';inherits:true;initial-value:#0b0b0b}
+@property --tint-b{syntax:'<color>';inherits:true;initial-value:#070707}
+:root{
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-soft:cubic-bezier(.4,0,.2,1);
+  --cover:min(38vh,30vw);
+  --text:#f2f2f2;--muted:rgba(255,255,255,.52);
+  /* Mixed colours are computed in JS: Huawei's WebView lacks color-mix(). */
+  --track:rgba(255,255,255,.12);--fill:#e2ddd8;--glow-soft:rgba(27,27,27,.4);
+  transition:--accent 1.4s var(--ease-soft),--glow 1.4s var(--ease-soft),--tint-a 1.6s var(--ease-soft),--tint-b 1.6s var(--ease-soft);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;overflow:hidden;background:#000;color:var(--text);
+  font-family:"HarmonyOS Sans","Inter","Roboto",system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{background:
+  radial-gradient(120% 90% at 15% 110%,var(--tint-a),transparent 60%),
+  radial-gradient(110% 90% at 90% -10%,var(--tint-b),transparent 55%),#040404}
+
+/* Cava: a low-resolution canvas scaled up, then blurred on the compositor. */
+#bars{position:fixed;inset:12vh -2vw 0;width:104vw;height:88vh;filter:blur(4.5px) saturate(1.1);opacity:.62;
+  transform:translateZ(0);transition:opacity 1.2s var(--ease-soft)}
+body[data-state=paused] #bars{opacity:.3}
+.glow{position:fixed;left:50%;top:50%;width:calc(var(--cover)*2.2);aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(closest-side,var(--glow),var(--glow-soft) 45%,transparent);filter:blur(28px);opacity:calc(.35 + var(--bass,0)*.45);
+  transform:translate(-50%,-50%) scale(calc(1 + var(--bass,0)*.12));pointer-events:none;will-change:transform,opacity}
+
+/* Fine grain dithers the dark gradients so they never band. */
+body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+main{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;
+  padding:max(5.5vh,env(safe-area-inset-top)) max(6vw,env(safe-area-inset-right)) max(6vh,env(safe-area-inset-bottom)) max(6vw,env(safe-area-inset-left));
+  transition:opacity .8s var(--ease-soft),filter .8s var(--ease-soft)}
+body[data-state=idle] main{opacity:0;filter:blur(12px);pointer-events:none}
+
+.meta{text-align:center;line-height:1.2;min-height:calc(2.2em + 3vh)}
+.meta h1,.meta p{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.title{font-size:clamp(14px,4vh,22px);font-weight:600;letter-spacing:.01em;color:var(--accent)}
+.artist{font-size:clamp(12px,3.5vh,19px);font-weight:400;color:var(--muted);margin-top:.15em!important}
+.artist span::before{content:"- "}
+.artist span:empty::before{content:none}
+.meta span{display:inline-block;will-change:transform,opacity,filter}
+.meta .leaving{animation:text-out .38s var(--ease-soft) forwards}
+.meta .entering{animation:text-in .9s var(--ease-out) both}
+.artist .entering{animation-delay:.07s}
+@keyframes text-out{to{opacity:0;transform:translateY(-.5em);filter:blur(6px)}}
+@keyframes text-in{from{opacity:0;transform:translateY(.6em);filter:blur(8px)}}
+
+.deck{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center}
+/* Previous/next sit level with the cover's centre; shuffle/repeat hang below. */
+.side{position:relative;display:grid;justify-items:center;align-self:center}
+.side .small{position:absolute;top:calc(100% + 2.4vh)}
+.cover{position:relative;width:var(--cover);aspect-ratio:1;border:0;padding:0;background:#111;border-radius:calc(var(--cover)*.1);
+  transform:scale(var(--press,1)) translateZ(0);will-change:transform;cursor:pointer;
+  box-shadow:0 2.4vh 6vh rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.06)}
+.art{position:absolute;inset:0;border-radius:inherit;overflow:hidden;isolation:isolate}
+.art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;will-change:transform,opacity,filter}
+.art img.entering{animation:cover-in .95s var(--ease-out) both}
+.art img.leaving{animation:cover-out .6s var(--ease-soft) forwards}
+.art img[data-from=next].entering{--from:14%}.art img[data-from=next].leaving{--to:-14%}
+.art img[data-from=previous].entering{--from:-14%}.art img[data-from=previous].leaving{--to:14%}
+@keyframes cover-in{from{opacity:0;transform:translateX(var(--from,0)) scale(1.12);filter:blur(14px)}}
+@keyframes cover-out{to{opacity:0;transform:translateX(var(--to,0)) scale(.9);filter:blur(10px)}}
+.pulse{position:absolute;inset:0;display:grid;place-items:center;border-radius:inherit;pointer-events:none;opacity:0;
+  background:rgba(0,0,0,.28);backdrop-filter:blur(2px)}
+.pulse svg{grid-area:1/1;width:22%;fill:#fff;opacity:0}
+.pulse.show{animation:pulse 1s var(--ease-out)}
+.pulse.show svg.on{animation:glyph 1s var(--ease-out)}
+@keyframes pulse{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+@keyframes glyph{0%{opacity:0;transform:scale(.6)}20%{opacity:1;transform:scale(1.08)}35%{transform:scale(1)}100%{opacity:0;transform:scale(1.04)}}
+
+.control{display:grid;place-items:center;border:0;padding:0;background:none;color:#fff;cursor:pointer;
+  width:clamp(36px,10vh,54px);aspect-ratio:1;border-radius:50%;transform:scale(var(--press,1));will-change:transform}
+.control svg{width:62%;fill:currentColor;stroke:currentColor;filter:drop-shadow(0 .4vh 1.2vh rgba(0,0,0,.6))}
+.control.small{width:clamp(28px,7.6vh,42px);color:var(--muted);position:relative;transition:color .35s var(--ease-soft),opacity .35s}
+.control.small svg{fill:none;width:58%}
+.control.small[aria-pressed=true],.control.small[data-loop=Playlist],.control.small[data-loop=Track]{color:var(--accent)}
+.control.small b{position:absolute;right:16%;top:14%;font-size:clamp(7px,2.1vh,10px);font-weight:700;opacity:0;transform:scale(.4);
+  transition:opacity .3s,transform .45s var(--ease-out)}
+.control.small[data-loop=Track] b{opacity:1;transform:none}
+.control.unsupported{opacity:.22}
+
+.timeline{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:3.2vw;font-size:clamp(10px,3vh,14px);
+  color:var(--muted);font-variant-numeric:tabular-nums}
+.track{position:relative;height:clamp(5px,1.7vh,8px);border-radius:99px;background:var(--track);overflow:hidden;
+  transition:height .35s var(--ease-out);touch-action:none}
+.track::after{content:"";position:absolute;inset:-14px 0}
+.track.dragging{height:clamp(8px,2.8vh,12px)}
+#fill{position:absolute;inset:0;border-radius:inherit;background:var(--fill);transform-origin:left;transform:scaleX(0);will-change:transform}
+
+.empty{position:fixed;inset:0;display:grid;place-items:center;margin:0;font-size:clamp(13px,4vh,18px);
+  color:var(--muted);letter-spacing:.08em;text-transform:lowercase;opacity:0;transition:opacity .8s var(--ease-soft);pointer-events:none}
+body[data-state=idle] .empty{opacity:1;animation:breathe 4s ease-in-out infinite}
+@keyframes breathe{50%{opacity:.45}}
+
+@media (orientation:portrait){
+  :root{--cover:min(60vw,36vh)}
+  .deck{grid-template-columns:1fr;grid-template-rows:auto auto;gap:4vh}
+  .side{grid-auto-flow:column;transform:none}
+  .deck>.side:first-child{order:2}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}

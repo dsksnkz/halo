@@ -1,0 +1,7 @@
+.venv/
+models/
+build/
+__pycache__/
+*.apk
+*.idsig
+*.jks
